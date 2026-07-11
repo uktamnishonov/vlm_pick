@@ -1,0 +1,10 @@
+depthai>=3.7.1
+opencv-python
+numpy
+scipy
+requests
+python-can
+
+# Also required, installed from source (not on PyPI):
+#   openarm_can  — Damiao CAN motor SDK  (https://github.com/enactic/openarm_can)
+#   openarm      — kinematics / URDF package providing openarm.kinematics.inverse.ikpy

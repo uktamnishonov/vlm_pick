@@ -1,0 +1,19 @@
+# SECRETS — never commit. Copy .env.example to .env and put your key there.
+.env
+
+# Machine-specific calibration artifacts (valid only for one camera placement)
+calibration.json
+servo_calib.json
+samples.json
+
+# Run artifacts: debug frames, masks, depth previews
+*.jpg
+*.png
+
+# depthai telemetry + crash dumps
+.cache/
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
