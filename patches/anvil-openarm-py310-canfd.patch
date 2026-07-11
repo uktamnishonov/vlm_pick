@@ -1,0 +1,171 @@
+diff --git a/openarm/damiao/__main__.py b/openarm/damiao/__main__.py
+index e1f7ddb..62b1642 100644
+--- a/openarm/damiao/__main__.py
++++ b/openarm/damiao/__main__.py
+@@ -73,7 +73,7 @@ def with_bus_cleanup(
+ 
+     @wraps(func)
+     async def wrapper(args: argparse.Namespace) -> None:
+-        with can.Bus(channel=args.iface, interface="socketcan") as can_bus:
++        with can.Bus(channel=args.iface, interface="socketcan", fd=True) as can_bus:
+             bus = Bus(can_bus)
+             await func(bus, args)
+ 
+diff --git a/openarm/damiao/arm_motor_check.py b/openarm/damiao/arm_motor_check.py
+index 60b3e47..196d423 100644
+--- a/openarm/damiao/arm_motor_check.py
++++ b/openarm/damiao/arm_motor_check.py
+@@ -311,7 +311,7 @@ async def test_all_motors(can_interface: str, side: str) -> None:
+     sys.stdout.write(f"\nChecking {len(MOTOR_CONFIGS)} motors...\n")
+ 
+     # Create shared CAN bus instance for all motors
+-    can_bus = can.Bus(channel=can_interface, interface="socketcan")
++    can_bus = can.Bus(channel=can_interface, interface="socketcan", fd=True)
+     bus = Bus(can_bus)
+ 
+     try:
+diff --git a/openarm/damiao/configure.py b/openarm/damiao/configure.py
+index a9d7fcc..a8cbca4 100644
+--- a/openarm/damiao/configure.py
++++ b/openarm/damiao/configure.py
+@@ -89,7 +89,7 @@ async def main() -> None:
+ 
+     # Create CAN bus
+     try:
+-        can_bus = can.Bus(channel=args.channel, interface=args.interface)
++        can_bus = can.Bus(channel=args.channel, interface=args.interface, fd=True)
+     except OSError as e:
+         sys.stderr.write(f"{RED}Error opening CAN bus: {e}{RESET}\n")
+         sys.exit(1)
+diff --git a/openarm/damiao/detect.py b/openarm/damiao/detect.py
+index 569b363..c6ce275 100644
+--- a/openarm/damiao/detect.py
++++ b/openarm/damiao/detect.py
+@@ -132,7 +132,7 @@ def main(args: argparse.Namespace) -> None:  # noqa: PLR0912
+         # Create bus
+         try:
+             can_bus = can.Bus(
+-                channel=bus_config["channel"], interface=bus_config["interface"]
++                channel=bus_config["channel"], interface=bus_config["interface"], fd=True
+             )
+         except Exception as e:  # noqa: BLE001
+             sys.stderr.write(f"  {red}Error opening bus: {e}{reset}\n")
+diff --git a/openarm/damiao/gravity.py b/openarm/damiao/gravity.py
+index 60728e4..adc6b60 100644
+--- a/openarm/damiao/gravity.py
++++ b/openarm/damiao/gravity.py
+@@ -172,7 +172,7 @@ async def main(args: argparse.Namespace) -> None:  # noqa: C901, PLR0912
+     # Now create CAN buses after validation
+     try:
+         all_can_buses = [
+-            can.Bus(channel=config["channel"], interface=config["interface"])
++            can.Bus(channel=config["channel"], interface=config["interface"], fd=True)
+             for config in can.detect_available_configs("socketcan")
+         ]
+     except Exception:  # noqa: BLE001
+diff --git a/openarm/damiao/monitor.py b/openarm/damiao/monitor.py
+index c59675d..dbb3901 100644
+--- a/openarm/damiao/monitor.py
++++ b/openarm/damiao/monitor.py
+@@ -126,7 +126,7 @@ async def main(args: argparse.Namespace) -> None:
+     # Create CAN buses
+     try:
+         can_buses = [
+-            can.Bus(channel=config["channel"], interface=config["interface"])
++            can.Bus(channel=config["channel"], interface=config["interface"], fd=True)
+             for config in can.detect_available_configs("socketcan")
+         ]
+     except Exception:  # noqa: BLE001
+diff --git a/openarm/damiao/motor.py b/openarm/damiao/motor.py
+index e075e95..6037f4b 100644
+--- a/openarm/damiao/motor.py
++++ b/openarm/damiao/motor.py
+@@ -8,9 +8,19 @@ Reference: README.md High-Level Motor Class section for architecture details.
+ """
+ 
+ from collections.abc import Coroutine
+-from enum import StrEnum
+ from typing import Any, Literal
+ 
++try:
++    from enum import StrEnum
++except ImportError:  # Python < 3.11
++    from enum import Enum
++
++    class StrEnum(str, Enum):
++        """Minimal backport of enum.StrEnum for Python 3.10."""
++
++        def __str__(self) -> str:
++            return str(self.value)
++
+ from openarm.bus import Bus
+ 
+ from .encoding import (
+diff --git a/openarm/damiao/register_dump.py b/openarm/damiao/register_dump.py
+index bdf30d7..d3776ef 100644
+--- a/openarm/damiao/register_dump.py
++++ b/openarm/damiao/register_dump.py
+@@ -350,7 +350,7 @@ async def main(args: argparse.Namespace) -> None:
+     for bus_idx, bus_config in enumerate(bus_configs):
+         try:
+             can_bus = can.Bus(
+-                channel=bus_config["channel"], interface=bus_config["interface"]
++                channel=bus_config["channel"], interface=bus_config["interface"], fd=True
+             )
+         except Exception as e:  # noqa: BLE001
+             sys.stderr.write(
+diff --git a/openarm/damiao/set_zero.py b/openarm/damiao/set_zero.py
+index 5806c09..edbc30c 100644
+--- a/openarm/damiao/set_zero.py
++++ b/openarm/damiao/set_zero.py
+@@ -24,7 +24,7 @@ async def main() -> None:
+     # Create CAN buses
+     try:
+         can_buses = [
+-            can.Bus(channel=config["channel"], interface=config["interface"])
++            can.Bus(channel=config["channel"], interface=config["interface"], fd=True)
+             for config in can.detect_available_configs("socketcan")
+         ]
+     except Exception:
+diff --git a/openarm/damiao/set_zero_limit.py b/openarm/damiao/set_zero_limit.py
+index eaebba0..ecd6b59 100644
+--- a/openarm/damiao/set_zero_limit.py
++++ b/openarm/damiao/set_zero_limit.py
+@@ -178,7 +178,7 @@ async def main(args: argparse.Namespace) -> None:
+     """Run the angle range tracker."""
+     # Create single CAN bus from arguments
+     try:
+-        can_bus = can.Bus(channel=args.channel, interface=args.interface)
++        can_bus = can.Bus(channel=args.channel, interface=args.interface, fd=True)
+     except Exception as e:  # noqa: BLE001
+         sys.stderr.write(f"{RED}Error: Failed to create CAN bus: {e}{RESET}\n")
+         return None
+diff --git a/openarm/netcan/client.py b/openarm/netcan/client.py
+index f8ed7e5..e6adb65 100644
+--- a/openarm/netcan/client.py
++++ b/openarm/netcan/client.py
+@@ -4,7 +4,10 @@ import json
+ import socket
+ from collections.abc import Iterator
+ from time import time
+-from typing import Self
++try:
++    from typing import Self
++except ImportError:  # Python < 3.11
++    from typing_extensions import Self
+ 
+ from can import BusABC, Message
+ 
+diff --git a/pyproject.toml b/pyproject.toml
+index 803601d..37cb70f 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -7,7 +7,7 @@ name = "openarm"
+ version = "0.1.0"
+ description = "A Python package for robotic arm control and automation"
+ readme = "README.md"
+-requires-python = ">=3.11"
++requires-python = ">=3.10"
+ dependencies = [
+   "python-can>=4.6.1",
+   "ikpy>=3.4.2",

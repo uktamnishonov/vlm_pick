@@ -109,6 +109,12 @@ Every planned pose is checked for body-column clearance before any motion.
 
 ## Setup
 
+**See [SETUP.md](SETUP.md) — a fresh clone of the upstream dependencies will not work.**
+The Jetson ships no USB-CAN driver, upstream `openarm` requires Python 3.11 while JetPack
+ships 3.10, and it opens CAN without FD framing — which makes the motors *silently* stop
+replying, with no error at all. `patches/anvil-openarm-py310-canfd.patch` fixes the latter
+two.
+
 ```bash
 pip install -r requirements.txt        # plus openarm_can + openarm from source
 cp .env.example .env                   # add your GEMINI_API_KEY
